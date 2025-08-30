@@ -4,63 +4,58 @@ services:
     image: nginx:mine
     build: ./nginx/
     ports:
-      - "443:443"
+      - '443:443'
+      - '8080:80'
     restart: always
     networks:
-      - pingopng
-  
+      - pingpong
+
   chat:
     container_name: chat
     image: chat:mine
     build: ./chat/
-    ports:
-      - "4001:4001"
     volumes:
       - ./chat:/usr/src/app
       - /usr/src/app/node_modules
     restart: always
     networks:
-      - pingopng
+      - pingpong
 
   game:
     container_name: game
     image: game:mine
     build: ./game/
-    ports:
-      - "4002:4002"
     volumes:
       - ./game:/usr/src/app
       - /usr/src/app/node_modules
     restart: always
     networks:
-      - pingopng
+      - pingpong
 
   identity:
     container_name: identity
     image: identity:mine
     build: ./identity/
-    ports:
-      - "4000:4000"
     volumes:
       - ./identity:/usr/src/app
       - /usr/src/app/node_modules
+    ports:
+      - "4000:4000"
     restart: always
     networks:
-      - pingopng
+      - pingpong
 
   notification:
     container_name: notification
     image: notification:mine
     build: ./notification/
-    ports:
-      - "4003:4003"
     volumes:
       - ./notification:/usr/src/app
       - /usr/src/app/node_modules
     restart: always
     networks:
-      - pingopng
+      - pingpong
 
 networks:
-  pingopng:
+  pingpong:
     driver: bridge

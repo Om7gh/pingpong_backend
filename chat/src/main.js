@@ -19,4 +19,4 @@ app.register(cors, {
   credentials: true,
 })
 
-exports.module.app = app
+module.exports = app
