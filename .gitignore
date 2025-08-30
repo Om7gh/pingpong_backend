@@ -1,0 +1,19 @@
+# Node.js
+*/node_modules/
+*/identity/node_modules/
+*/node_modules/
+*/node_modules/
+npm-debug.log
+*/.env
+*/identity/.env
+*/.env
+*/.env
+.env
+*.log
+
+dist/
+build/
+
+.vscode/
+.idea/
+*/.DS_Store
