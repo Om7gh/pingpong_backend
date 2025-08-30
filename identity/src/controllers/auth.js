@@ -22,7 +22,6 @@ const signup = catchAsyncError(async function (req, rep) {
 const login = catchAsyncError(async function (req, rep) {
     const { username, password } = req.body
     if (!username || !password) throw new AppError('please fill all field', 400)
-    const userId = verifyUser({ username, password })
 
     rep.send({ status: 'success', message: 'User logged in successfully' })
 })
