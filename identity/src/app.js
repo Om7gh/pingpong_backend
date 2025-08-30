@@ -1,7 +1,7 @@
 const app = require('./main.js')
 const authRoutes = require('./routes/auth.routes.js')
 
-app.register(authRoutes, { prefix: '/api/v1/identity' })
+app.register(authRoutes, { prefix: '/api/v1/' })
 app.ready(() => {
     const start = async () => {
         app.listen(

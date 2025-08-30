@@ -20,4 +20,19 @@ app.register(cors, {
     credentials: true,
 })
 
+app.setErrorHandler((error, request, reply) => {
+    if (error.isOperational) {
+        reply.status(error.statusCode).send({
+            status: error.status,
+            message: error.message,
+        })
+    } else {
+        console.error(error)
+        reply.status(500).send({
+            status: 'error',
+            message: 'Something went wrong!',
+        })
+    }
+})
+
 module.exports = app
