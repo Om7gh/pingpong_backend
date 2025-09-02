@@ -1,5 +1,4 @@
 const fastify = require('fastify')
-const cors = require('@fastify/cors')
 require('dotenv').config()
 
 const options = {
@@ -13,12 +12,16 @@ const options = {
 
 const app = fastify(options)
 
-app.register(cors, {
+app.register(require('@fastify/cors'), {
     origin: '*',
     methods: ['POST', 'GET', 'PUT', 'DELETE', 'HEAD'],
     allowedHeaders: ['Content-type', 'authorization'],
     credentials: true,
 })
+app.register(require('./database/db.js'))
+app.register(require('@fastify/multipart'))
+app.register(require('./services/jwt.js'))
+app.register(require('@fastify/cookie'))
 
 app.setErrorHandler((error, request, reply) => {
     if (error.isOperational) {

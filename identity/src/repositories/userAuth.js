@@ -1,40 +1,69 @@
-const db = require('../database/db.js')
+const app = require('../main.js')
+const AppError = require('../utils/appError.js')
 
 function createUser({ username, email, passwordHash }) {
-    const stmt = db.prepare(`
+    const stmt = app.db
+        .prepare(
+            `
         INSERT INTO users (username, email, password)
         VALUES (?, ?, ?)
+    `
+        )
+        .run(username, email, passwordHash)
+    return stmt.lastInsertRowid
+}
+
+function storeAvatarAndBio({ avatar, bio, username }) {
+    const stmt = app.db.prepare(`
+        UPDATE users 
+        SET avatar = ?, bio = ?
+        WHERE username = ?
     `)
-    const result = stmt.run(username, email, passwordHash)
-    return result.lastInsertRowid
+    stmt.run(avatar, bio, username)
 }
 
 function getUserByUsername(username) {
-    return db.prepare(`SELECT * FROM users WHERE username = ?`).get(username)
+    return app.db
+        .prepare(`SELECT * FROM users WHERE username = ?`)
+        .get(username)
+}
+
+function getUserByEmail(email) {
+    return app.db.prepare(`SELECT * FROM users WHERE email = ?`).get(email)
+}
+
+function storeResetToken({ resetPasswordToken, resetPasswordExpire, id }) {
+    return app.db
+        .prepare(
+            `UPDATE users SET resetPasswordToken = ?, resetPasswordExpire = ? WHERE id = ?`
+        )
+        .run(resetPasswordToken, resetPasswordExpire, id)
 }
 
 function getUserById(id) {
-    return db.prepare(`SELECT * FROM users WHERE id = ?`).get(id)
+    return app.db.prepare(`SELECT * FROM users WHERE id = ?`).get(id)
 }
 
 function activateUser(userId) {
-    return db
+    return app.db
         .prepare(`UPDATE users SET isVerified = 1 WHERE id = ?`)
         .run(userId)
 }
 
 function updatePassword(userId, newPasswordHash) {
-    return db
+    return app.db
         .prepare(`UPDATE users SET password = ? WHERE id = ?`)
         .run(newPasswordHash, userId)
 }
 
 function enable2FA(userId) {
-    return db.prepare(`UPDATE users SET enable2fa = 1 WHERE id = ?`).run(userId)
+    return app.db
+        .prepare(`UPDATE users SET enable2fa = 1 WHERE id = ?`)
+        .run(userId)
 }
 
 function createOtp(userId, code, expiresAt) {
-    return db
+    return app.db
         .prepare(
             `
         INSERT INTO otp (user_id, code, expires_at)
@@ -45,7 +74,7 @@ function createOtp(userId, code, expiresAt) {
 }
 
 function getLatestOtp(userId) {
-    return db
+    return app.db
         .prepare(
             `
         SELECT * FROM otp
@@ -56,20 +85,23 @@ function getLatestOtp(userId) {
         .get(userId)
 }
 
-function verifyOtp(userId, code) {
-    const otp = db
+function verifyOtp(id, code) {
+    console.log(id, code)
+    const otp = app.db
         .prepare(
             `
         SELECT * FROM otp
         WHERE user_id = ? AND code = ? AND used = 0
     `
         )
-        .get(userId, code)
+        .get(id, code)
 
-    if (!otp) return null
-    if (new Date(otp.expires_at) < new Date()) return null
-
-    db.prepare(`UPDATE otp SET used = 1 WHERE id = ?`).run(otp.id)
+    if (!otp) throw new AppError('Invalid Otp', 400)
+    if (new Date(otp.expires_at) < new Date())
+        throw new AppError('Otp has beeing expired', 400)
+    if (otp.used === 1) throw new AppError('otp is already used', 400)
+    app.db.prepare(`UPDATE otp SET used = 1 WHERE id = ?`).run(otp.id)
+    app.db.prepare(`UPDATE users SET isVerified = 1 WHERE id = ?`).run(id)
     return otp
 }
 
@@ -83,4 +115,7 @@ module.exports = {
     createOtp,
     getLatestOtp,
     verifyOtp,
+    storeAvatarAndBio,
+    getUserByEmail,
+    storeResetToken,
 }

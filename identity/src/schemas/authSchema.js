@@ -2,7 +2,7 @@ const signInSchema = {
     schema: {
         body: {
             type: 'object',
-            required: ['username', 'email', 'password'], // Required fields
+            required: ['username', 'email', 'password'],
             properties: {
                 username: { type: 'string', minLength: 3, maxLength: 20 },
                 email: { type: 'string', format: 'email' },
@@ -31,11 +31,14 @@ const activateSchema = {
     schema: {
         body: {
             type: 'object',
-            required: ['otp'],
+            required: ['code', 'username'],
             properties: {
-                otp: {
+                code: {
                     type: 'string',
                     pattern: '^[0-9]{4,6}$',
+                },
+                username: {
+                    type: 'string',
                 },
             },
             additionalProperties: false,
@@ -76,7 +79,20 @@ const check2faSchema = {
             type: 'object',
             required: ['token'],
             properties: {
-                token: { type: 'string', minLength: 10 }, // adjust validation as needed
+                token: { type: 'string' },
+            },
+            additionalProperties: false,
+        },
+    },
+}
+
+const completeAuthSchema = {
+    schema: {
+        body: {
+            type: 'object',
+            required: ['bio'],
+            properties: {
+                bio: { type: 'string' },
             },
             additionalProperties: false,
         },
@@ -90,4 +106,5 @@ module.exports = {
     forgetPasswordSchema,
     resetPasswordSchema,
     check2faSchema,
+    completeAuthSchema,
 }
