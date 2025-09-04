@@ -6,21 +6,22 @@ const {
     checkCompleteProfile,
     checkLoginUser,
     resendOtpProcess,
-    resetPassowrdProcess,
+    forgetPassowrdProcess,
+    resetPasswordProcess,
 } = require('../services/auth.js')
-const { sendEmail } = require('../services/email.js')
 const AppError = require('../utils/appError.js')
 const catchAsyncError = require('../utils/catchAsyncError.js')
-const generateOtp = require('../utils/otp.js')
+const sendOtp = require('../utils/sendOtp.js')
 
 const signup = catchAsyncError(async function (req, rep) {
     const { username, email, password } = req.body
     if (!username || !email || !password)
         throw new AppError('please fill all field', 400)
     const userId = await createUser({ username, email, password })
-    const code = generateOtp(userId)
-    const text = `your verification code is : ${code}`
-    await sendEmail(email, 'verification Account code', text)
+    if (!sendOtp(userId, email))
+        throw new AppError(
+            "pingpop can't send you otp code, try the resend code link"
+        )
     rep.send({
         status: 'success',
         message: 'User signed up successfully',
@@ -37,6 +38,9 @@ const login = catchAsyncError(async function (req, rep) {
         password,
     })
     if (access_token === '' && refresh_token === '') {
+        const user = getUserByUsername(username)
+        if (!user) throw new AppError('user not found', 404)
+        sendOtp(user.id, user.email)
         return rep.send({
             status: '2fa',
             message: 'verify your 2fa before login',
@@ -64,7 +68,7 @@ const completeAuth = catchAsyncError(async function (req, rep) {
     const parts = await req.parts()
     const username = req.params.username
     if (!username) throw new AppError('you missed username from url', 400)
-    checkCompleteProfile({ parts, username })
+    await checkCompleteProfile({ parts, username })
     rep.send({
         status: 'success',
         message: 'User complete profile successfully',
@@ -81,14 +85,16 @@ const logout = catchAsyncError(async function (req, rep) {
         .clearCookie('access-token', {
             path: '/',
             httpOnly: true,
-            secure: true,
-            sameSite: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         })
         .send({ status: 'success', message: 'User logged out successfully' })
 })
 
 const activeAccount = catchAsyncError(async function (req, rep) {
     const { code, username } = req.body
+    if (!code || !username)
+        throw new AppError('missing activation code or username')
     await checkOtp({ code, username })
     const user = getUserByUsername(username)
     const token = app.jwt.sign(
@@ -97,11 +103,10 @@ const activeAccount = catchAsyncError(async function (req, rep) {
         { expiresIn: '15m' }
     )
     rep.setCookie('token', token, {
-        domain: 'localhost',
         path: '/',
-        secure: true,
         httpOnly: true,
-        sameSite: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     }).send({
         status: 'success',
         message: 'User account is activated successfully',
@@ -110,16 +115,34 @@ const activeAccount = catchAsyncError(async function (req, rep) {
 })
 
 const check2fa = catchAsyncError(async function (req, rep) {
-    // TODO:
-
-    rep.send({ status: 'success', message: '2FA is checekd successfully' })
+    const { code, username } = req.body
+    if (!code || !username) throw new AppError('missing 2fa code or username')
+    await checkOtp({ code, username })
+    const user = getUserByUsername(username)
+    const token = app.jwt.sign(
+        { id: user.id, username: user.username },
+        process.env.JWT_SECRET,
+        { expiresIn: '15m' }
+    )
+    rep.setCookie('token', token, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    }).send({
+        status: 'success',
+        message: 'User logged in successfully',
+    })
+    rep.send({
+        status: 'success',
+        message: `Welcome back ${username}`,
+    })
 })
 
 const forgetPassword = catchAsyncError(async function (req, rep) {
     const { email } = req.body
     if (!email) throw new AppError('email field is required', 400)
-    await resetPassowrdProcess({ email })
-
+    await forgetPassowrdProcess({ email })
     rep.send({
         status: 'success',
         message: 'Code send in your mail successfully',
@@ -134,6 +157,7 @@ const resetPassword = catchAsyncError(async function (req, rep) {
     if (password !== repeatPassword)
         throw new AppError("password and confirm password doesn't match", 400)
     if (!token) throw new AppError('missing token in params', 400)
+    await resetPasswordProcess({ password, token })
     rep.send({
         status: 'success',
         message: 'Password has reseted successfully',
@@ -143,12 +167,11 @@ const resetPassword = catchAsyncError(async function (req, rep) {
 const resendOtp = catchAsyncError(async function (req, rep) {
     const { username } = req.params
     if (!username) throw new AppError('username missed from params', 400)
-    const otp = await resendOtpProcess({ username })
+    await resendOtpProcess({ username })
 
     rep.send({
         status: 'success',
         message: 'OTP code has resended to your mail successfully',
-        otp,
     })
 })
 
@@ -164,28 +187,19 @@ const refreshToken = catchAsyncError(async function (req, rep) {
         { id: payload.id, username: payload.username },
         { expiresIn: '15m' }
     )
-
-    const newRefreshToken = fastify.jwt.sign(
-        { id: payload.id, username: payload.username },
-        { expiresIn: '7d' }
-    )
-
     rep.setCookie('access-token', newAccessToken, {
         path: '/',
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    }).send({
+        status: 'success',
+        message: 'Token refreshed successfully',
     })
-        .setCookie('refresh-token', newRefreshToken, {
-            path: '/',
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        })
-        .send({
-            status: 'success',
-            message: 'Token refreshed successfully',
-        })
+})
+
+const isAuthenticated = catchAsyncError(async function (req, rep) {
+    req.jwtVerify()
 })
 
 module.exports = {
@@ -199,4 +213,5 @@ module.exports = {
     resendOtp,
     completeAuth,
     refreshToken,
+    isAuthenticated,
 }

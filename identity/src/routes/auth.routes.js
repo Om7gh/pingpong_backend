@@ -4,7 +4,6 @@ const {
     activateSchema,
     forgetPasswordSchema,
     resetPasswordSchema,
-    check2faSchema,
     completeAuthSchema,
 } = require('../schemas/authSchema.js')
 
@@ -16,10 +15,10 @@ const {
     login,
     resendOtp,
     resetPassword,
-    sendOtp,
     logout,
     completeAuth,
     refreshToken,
+    isAuthenticated,
 } = require('../controllers/auth.js')
 const fp = require('fastify-plugin')
 
@@ -33,15 +32,16 @@ const authRoutes = async function (fastify, opt) {
         '/auth/complete-auth/:username',
         { completeAuthSchema, consumes: ['multipart/form-data'] },
         completeAuth
-    ) // done 50%
-    fastify.post('/auth/check-2fa', check2faSchema, check2fa)
+    ) // done
+    fastify.post('/auth/check-2fa', activateSchema, check2fa) // done
     fastify.post('/auth/refresh-token', refreshToken) // done
     fastify.post('/auth/forget-password', forgetPasswordSchema, forgetPassword) // done
     fastify.post(
-        '/auth/reset-password:token',
+        '/auth/reset-password/:token',
         resetPasswordSchema,
         resetPassword
     )
+    fastify.post('/auth/me', isAuthenticated) // done
 }
 
 module.exports = fp(authRoutes)

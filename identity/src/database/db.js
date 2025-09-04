@@ -15,10 +15,13 @@ const prepareDb = function (app) {
         bio TEXT,
         isVerified INTEGER DEFAULT 0,
         enable2fa INTEGER DEFAULT 0,
-        resetPasswordToken TEXT
+        resetPasswordToken TEXT,
         resetPasswordExpire INTEGER
     );
-    
+
+    CREATE INDEX IF NOT EXISTS idx_users_resetPasswordToken 
+    ON users (resetPasswordToken);
+
     CREATE TABLE IF NOT EXISTS otp (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,

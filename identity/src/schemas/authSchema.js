@@ -73,19 +73,6 @@ const resetPasswordSchema = {
     },
 }
 
-const check2faSchema = {
-    schema: {
-        querystring: {
-            type: 'object',
-            required: ['token'],
-            properties: {
-                token: { type: 'string' },
-            },
-            additionalProperties: false,
-        },
-    },
-}
-
 const completeAuthSchema = {
     schema: {
         body: {
@@ -105,6 +92,5 @@ module.exports = {
     activateSchema,
     forgetPasswordSchema,
     resetPasswordSchema,
-    check2faSchema,
     completeAuthSchema,
 }

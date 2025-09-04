@@ -1,6 +1,5 @@
 const bcrypt = require('bcrypt')
 const app = require('../main.js')
-const crypto = require('crypto')
 const cloudinary = require('../config/cloudinary.js')
 
 const {
@@ -11,11 +10,14 @@ const {
     getLatestOtp,
     getUserByEmail,
     storeResetToken,
+    getUserByResetToken,
+    updatePassword,
 } = require('../repositories/userAuth.js')
 const AppError = require('../utils/appError.js')
-const jwt = require('./jwt.js')
 const { sendEmail } = require('./email.js')
 const generateOtp = require('../utils/otp.js')
+const generateToken = require('../utils/generateToken.js')
+
 const createUser = async function ({ username, email, password }) {
     const passwordHash = await bcrypt.hash(password, 12)
     try {
@@ -30,21 +32,34 @@ const createUser = async function ({ username, email, password }) {
 }
 
 const checkCompleteProfile = async function ({ parts, username }) {
-    let avatar = ''
+    let avatarUrl = ''
     let bio = ''
 
     for await (const part of parts) {
-        if (part.fieldname === 'avatar') {
-            avatar = part.value
-        } else if (!part.file && part.fieldname === 'bio') bio = part.value
+        if (part.file && part.fieldname === 'avatar') {
+            const uploadResult = await new Promise((resolve, reject) => {
+                const stream = cloudinary.v2.uploader.upload_stream(
+                    { folder: 'avatars', use_filename: true },
+                    (error, result) => {
+                        if (error) return reject(error)
+                        resolve(result)
+                    }
+                )
+                part.file.pipe(stream)
+            })
+            avatarUrl = uploadResult.secure_url
+        } else if (!part.file && part.fieldname === 'bio') {
+            bio = part.value
+        }
     }
 
-    if (bio == '') bio = 'bio is empty'
-    if (avatar === '') {
+    if (bio === '') bio = 'bio is empty'
+    if (avatarUrl === '') {
         const { id } = getUserByUsername(username)
-        avatar = `https://avatar.iran.liara.run/public/${id}`
+        avatarUrl = `https://avatar.iran.liara.run/public/${id}`
     }
-    storeAvatarAndBio({ avatar, bio, username })
+
+    storeAvatarAndBio({ avatar: avatarUrl, bio, username })
 }
 
 const checkOtp = async function ({ code, username }) {
@@ -84,7 +99,6 @@ const resendOtpProcess = async function ({ username }) {
         const code = generateOtp(user.id)
         const text = `Your verification code is: ${code}`
         await sendEmail(user.email, 'Resend OTP Verification', text)
-
         return code
     }
 
@@ -96,25 +110,28 @@ const resendOtpProcess = async function ({ username }) {
     return otpRow.code
 }
 
-const resetPassowrdProcess = async function ({ email }) {
+const forgetPassowrdProcess = async function ({ email }) {
     const user = await getUserByEmail(email)
     if (!user) throw new AppError('User not found', 404)
-
-    const token = crypto.randomBytes(20).toString('hex')
-    const resetPasswordToken = crypto
-        .createHash('sha256')
-        .update(token)
-        .digest('hex')
+    const resetPasswordToken = generateToken()
     const resetPasswordExpire = Date.now() + 15 * 60 * 1000
     await storeResetToken({
         resetPasswordToken,
         resetPasswordExpire,
         id: user.id,
     })
-    const resetPasswordUrl = `http://localhost:3000/password/reset/${resetPasswordToken}`
+    const resetPasswordUrl = `http://localhost:3000/password-reset/${resetPasswordToken}`
     const message = `Your password reset link : ${resetPasswordUrl}\n\n if you dont request it please ignore it`
-
     await sendEmail(email, 'reset password url', message)
+}
+
+const resetPasswordProcess = async function ({ password, token }) {
+    const user = getUserByResetToken(token)
+    if (!user) throw new AppError('token is expired or invalid', 401)
+    console.log('user data: ', user)
+    const hashedPassword = await bcrypt.hash(password, 12)
+    const userRow = updatePassword(user.id, hashedPassword)
+    console.log('update password: ', userRow)
 }
 
 module.exports = {
@@ -123,5 +140,6 @@ module.exports = {
     checkCompleteProfile,
     checkLoginUser,
     resendOtpProcess,
-    resetPassowrdProcess,
+    forgetPassowrdProcess,
+    resetPasswordProcess,
 }

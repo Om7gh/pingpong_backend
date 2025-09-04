@@ -28,6 +28,16 @@ function getUserByUsername(username) {
         .get(username)
 }
 
+function getUserByResetToken(token) {
+    const date = Date.now()
+    console.log(typeof date)
+    return app.db
+        .prepare(
+            `SELECT * FROM users WHERE resetPasswordToken = ? And resetPasswordExpire > ?`
+        )
+        .get(token, date)
+}
+
 function getUserByEmail(email) {
     return app.db.prepare(`SELECT * FROM users WHERE email = ?`).get(email)
 }
@@ -86,7 +96,6 @@ function getLatestOtp(userId) {
 }
 
 function verifyOtp(id, code) {
-    console.log(id, code)
     const otp = app.db
         .prepare(
             `
@@ -118,4 +127,5 @@ module.exports = {
     storeAvatarAndBio,
     getUserByEmail,
     storeResetToken,
+    getUserByResetToken,
 }
