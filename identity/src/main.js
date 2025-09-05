@@ -1,4 +1,5 @@
 const fastify = require('fastify')
+const discordPlugin = require('./services/oauth/discord/discordPlugin.js')
 require('dotenv').config()
 
 const options = {
@@ -19,10 +20,11 @@ app.register(require('@fastify/cors'), {
     credentials: true,
 })
 app.register(require('./database/db.js'))
+
 app.register(require('@fastify/multipart'))
 app.register(require('./services/jwt.js'))
 app.register(require('@fastify/cookie'))
-
+app.register(discordPlugin)
 app.setErrorHandler((error, request, reply) => {
     if (error.isOperational) {
         reply.status(error.statusCode).send({

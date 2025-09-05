@@ -1,7 +1,10 @@
 const app = require('./main.js')
 const authRoutes = require('./routes/auth.routes.js')
+const oauthRoutes = require('./routes/oauth.routes.js')
 
 app.register(authRoutes, { prefix: '/api/v1/' })
+app.register(oauthRoutes, { prefix: 'api/v1' })
+
 app.ready(() => {
     const start = async () => {
         app.listen(

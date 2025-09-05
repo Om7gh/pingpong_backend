@@ -1,6 +1,5 @@
 const bcrypt = require('bcrypt')
 const app = require('../main.js')
-const cloudinary = require('../config/cloudinary.js')
 
 const {
     createUser: newUser,
@@ -17,6 +16,9 @@ const AppError = require('../utils/appError.js')
 const { sendEmail } = require('./email.js')
 const generateOtp = require('../utils/otp.js')
 const generateToken = require('../utils/generateToken.js')
+const generateAvatar = require('../utils/generateAvatar.js')
+const { cloudinary } = require('../config/cloudinary/cloudinary.js')
+const streamUpload = require('../config/cloudinary/upload.js')
 
 const createUser = async function ({ username, email, password }) {
     const passwordHash = await bcrypt.hash(password, 12)
@@ -37,28 +39,16 @@ const checkCompleteProfile = async function ({ parts, username }) {
 
     for await (const part of parts) {
         if (part.file && part.fieldname === 'avatar') {
-            const uploadResult = await new Promise((resolve, reject) => {
-                const stream = cloudinary.v2.uploader.upload_stream(
-                    { folder: 'avatars', use_filename: true },
-                    (error, result) => {
-                        if (error) return reject(error)
-                        resolve(result)
-                    }
-                )
-                part.file.pipe(stream)
-            })
+            const uploadResult = await streamUpload(part.file, username)
             avatarUrl = uploadResult.secure_url
         } else if (!part.file && part.fieldname === 'bio') {
             bio = part.value
         }
     }
-
     if (bio === '') bio = 'bio is empty'
     if (avatarUrl === '') {
-        const { id } = getUserByUsername(username)
-        avatarUrl = `https://avatar.iran.liara.run/public/${id}`
+        avatarUrl = await generateAvatar(username)
     }
-
     storeAvatarAndBio({ avatar: avatarUrl, bio, username })
 }
 

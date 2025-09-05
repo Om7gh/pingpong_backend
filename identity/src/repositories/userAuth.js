@@ -28,6 +28,18 @@ function getUserByUsername(username) {
         .get(username)
 }
 
+function updateBio(userId, newBio) {
+    return app.db
+        .prepare(`UPDATE users SET bio = ? WHERE id = ?`)
+        .run(newBio, userId)
+}
+
+function updateUsername(userId, newusername) {
+    return app.db
+        .prepare(`UPDATE users SET username = ? WHERE id = ?`)
+        .run(newusername, userId)
+}
+
 function getUserByResetToken(token) {
     const date = Date.now()
     console.log(typeof date)
@@ -57,6 +69,15 @@ function getUserById(id) {
 function activateUser(userId) {
     return app.db
         .prepare(`UPDATE users SET isVerified = 1 WHERE id = ?`)
+        .run(userId)
+}
+
+function deleteUserAccount(userId) {
+    return app.db
+        .prepare(
+            `DELETE FROM users WHERE id = ?;
+    `
+        )
         .run(userId)
 }
 
@@ -128,4 +149,7 @@ module.exports = {
     getUserByEmail,
     storeResetToken,
     getUserByResetToken,
+    updateBio,
+    updateUsername,
+    deleteUserAccount,
 }
