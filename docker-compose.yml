@@ -1,61 +1,61 @@
 services:
-  nginx:
-    container_name: nginx
-    image: nginx:mine
-    build: ./nginx/
-    ports:
-      - '443:443'
-      - '8080:80'
-    restart: always
-    networks:
-      - pingpong
+    nginx:
+        container_name: nginx
+        image: nginx:mine
+        build: ./nginx/
+        ports:
+            - '443:443'
+            - '8080:80'
+        restart: always
+        networks:
+            - pingpong
 
-  chat:
-    container_name: chat
-    image: chat:mine
-    build: ./chat/
-    volumes:
-      - ./chat:/usr/src/app
-      - /usr/src/app/node_modules
-    restart: always
-    networks:
-      - pingpong
+    chat:
+        container_name: chat
+        image: chat:mine
+        build: ./chat/
+        volumes:
+            - ./chat:/usr/src/app
+            - /usr/src/app/node_modules
+        restart: always
+        networks:
+            - pingpong
 
-  game:
-    container_name: game
-    image: game:mine
-    build: ./game/
-    volumes:
-      - ./game:/usr/src/app
-      - /usr/src/app/node_modules
-    restart: always
-    networks:
-      - pingpong
+    game:
+        container_name: game
+        image: game:mine
+        build: ./game/
+        volumes:
+            - ./game:/usr/src/app
+            - /usr/src/app/node_modules
+        restart: always
+        networks:
+            - pingpong
 
-  identity:
-    container_name: identity
-    image: identity:mine
-    build: ./identity/
-    volumes:
-      - ./identity:/usr/src/app
-      - /usr/src/app/node_modules
-    ports:
-      - "4000:4000"
-    restart: always
-    networks:
-      - pingpong
+    identity:
+        container_name: identity
+        image: identity:mine
+        build: ./identity/
+        volumes:
+            - ./identity:/usr/src/app
+            - /usr/src/app/node_modules
+        ports:
+            - '4000:4000'
+        restart: always
+        networks:
+            - pingpong
 
-  notification:
-    container_name: notification
-    image: notification:mine
-    build: ./notification/
-    volumes:
-      - ./notification:/usr/src/app
-      - /usr/src/app/node_modules
-    restart: always
-    networks:
-      - pingpong
+    notification:
+        container_name: notification
+        image: notification:mine
+        build: ./notification/
+        volumes:
+            - ./notification:/usr/src/app
+            - /usr/src/app/node_modules
+        restart: always
+        networks:
+            - pingpong
 
 networks:
-  pingpong:
-    driver: bridge
+    pingpong:
+        driver: bridge

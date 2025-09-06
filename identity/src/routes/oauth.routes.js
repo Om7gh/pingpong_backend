@@ -10,8 +10,6 @@ const OAuthRoutes = async function (fastify) {
     fastify.get('/auth/discord/callback', discordCallback)
 
     // google routes
-
-    // intra routes
 }
 
 module.exports = fp(OAuthRoutes)

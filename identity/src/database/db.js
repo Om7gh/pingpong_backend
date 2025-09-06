@@ -23,12 +23,15 @@ const prepareDb = function (app) {
         google_id TEXT UNIQUE
     );
 
-    CREATE INDEX IF NOT EXISTS idx_users_resetPasswordToken 
-    ON users (resetPasswordToken);
-
-    CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
-
-    CREATE INDEX IF NOT EXISTS idx_users_discord_id ON users (discord_id);
+    CREATE TABLE IF NOT EXISTS friends (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_id INTEGER NOT NULL,
+        to_id INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (from_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (to_id) REFERENCES users(id) ON DELETE CASCADE
+    );
 
     CREATE TABLE IF NOT EXISTS otp (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,6 +41,18 @@ const prepareDb = function (app) {
         used INTEGER DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    CREATE INDEX IF NOT EXISTS idx_users_resetPasswordToken ON users (resetPasswordToken);
+
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+
+    CREATE INDEX IF NOT EXISTS idx_users_discord_id ON users (discord_id);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_friend_pair ON friends (
+        CASE WHEN from_id < to_id THEN from_id ELSE to_id END,
+        CASE WHEN from_id < to_id THEN to_id ELSE from_id END
+    );
+
     `)
     app.decorate('db', db)
 }
