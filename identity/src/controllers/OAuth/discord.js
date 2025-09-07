@@ -30,7 +30,7 @@ const discordCallback = catchAsyncError(async function (req, rep) {
         }
     )
     const { access_token } = response.data
-    const { token_type } = response.data
+    const { token_type } = response.data // bearer
     const userData = await axios.get('https://discord.com/api/users/@me', {
         headers: {
             authorization: `${token_type} ${access_token}`,

@@ -1,4 +1,7 @@
 const app = require('./main.js')
+const chatRoutes = require('./routes/chat.routes.js')
+
+app.register(chatRoutes)
 
 const start = async () => {
     app.listen(
