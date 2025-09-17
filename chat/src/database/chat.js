@@ -1,6 +1,8 @@
-const database = require('better-sqlite3')
+const Database = require('better-sqlite3')
+const fp = require('fastify-plugin')
+
 const prepareDb = function (app) {
-    const db = new database('./chat.sqlite')
+    const db = new Database('./chat.sqlite')
     db.exec(`
 
 CREATE TABLE IF NOT EXISTS conversations (
@@ -12,9 +14,7 @@ CREATE TABLE IF NOT EXISTS conversation_participants (
     conversation_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (conversation_id, user_id),
-    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    PRIMARY KEY (conversation_id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -22,8 +22,7 @@ CREATE TABLE IF NOT EXISTS messages (
     conversation_id INTEGER NOT NULL,
     sender_id INTEGER NOT NULL,
     content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS message_status (
@@ -32,8 +31,7 @@ CREATE TABLE IF NOT EXISTS message_status (
     status TEXT CHECK(status IN ('pending','delivered','seen')) NOT NULL DEFAULT 'pending',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (message_id, user_id),
-    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
@@ -49,4 +47,4 @@ ON messages(sender_id);
 `)
     app.decorate('db', db)
 }
-module.exports = prepareDb
+module.exports = fp(prepareDb)

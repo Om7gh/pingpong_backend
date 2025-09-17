@@ -20,10 +20,10 @@ const generateAvatar = require('../utils/generateAvatar.js')
 const { cloudinary } = require('../config/cloudinary/cloudinary.js')
 const streamUpload = require('../config/cloudinary/upload.js')
 
-const createUser = async function ({ username, email, password }) {
+const createUser = async function ({ app, username, email, password }) {
     const passwordHash = await bcrypt.hash(password, 12)
     try {
-        const userId = newUser({ username, email, passwordHash })
+        const userId = newUser({ app, username, email, passwordHash })
         return userId
     } catch (err) {
         if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -33,7 +33,7 @@ const createUser = async function ({ username, email, password }) {
     }
 }
 
-const checkCompleteProfile = async function ({ parts, username }) {
+const checkCompleteProfile = async function ({ app, parts, username }) {
     let avatarUrl = ''
     let bio = ''
 
@@ -49,16 +49,16 @@ const checkCompleteProfile = async function ({ parts, username }) {
     if (avatarUrl === '') {
         avatarUrl = await generateAvatar(username)
     }
-    storeAvatarAndBio({ avatar: avatarUrl, bio, username })
+    storeAvatarAndBio({ app, avatar: avatarUrl, bio, username })
 }
 
-const checkOtp = async function ({ code, username }) {
-    const { id } = getUserByUsername(username)
-    return verifyOtp(id, code)
+const checkOtp = async function ({ app, code, username }) {
+    const { id } = getUserByUsername(app, username)
+    return verifyOtp(app, id, code)
 }
 
-const checkLoginUser = async function ({ username, password }) {
-    const user = getUserByUsername(username)
+const checkLoginUser = async function ({ app, username, password }) {
+    const user = getUserByUsername(app, username)
     if (!user) throw new AppError('Invalid username or password', 401)
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) throw new AppError('Invalid username or password', 401)
@@ -100,12 +100,13 @@ const resendOtpProcess = async function ({ username }) {
     return otpRow.code
 }
 
-const forgetPassowrdProcess = async function ({ email }) {
-    const user = await getUserByEmail(email)
+const forgetPassowrdProcess = async function ({ app, email }) {
+    const user = await getUserByEmail(app, email)
     if (!user) throw new AppError('User not found', 404)
     const resetPasswordToken = generateToken()
     const resetPasswordExpire = Date.now() + 15 * 60 * 1000
     await storeResetToken({
+        app,
         resetPasswordToken,
         resetPasswordExpire,
         id: user.id,
@@ -115,12 +116,12 @@ const forgetPassowrdProcess = async function ({ email }) {
     await sendEmail(email, 'reset password url', message)
 }
 
-const resetPasswordProcess = async function ({ password, token }) {
-    const user = getUserByResetToken(token)
+const resetPasswordProcess = async function ({ app, password, token }) {
+    const user = getUserByResetToken(app, token)
     if (!user) throw new AppError('token is expired or invalid', 401)
     console.log('user data: ', user)
     const hashedPassword = await bcrypt.hash(password, 12)
-    const userRow = updatePassword(user.id, hashedPassword)
+    const userRow = updatePassword(app, user.id, hashedPassword)
     console.log('update password: ', userRow)
 }
 

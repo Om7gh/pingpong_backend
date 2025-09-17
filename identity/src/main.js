@@ -20,10 +20,10 @@ app.register(require('@fastify/cors'), {
     credentials: true,
 })
 app.register(require('./database/db.js'))
-
 app.register(require('@fastify/multipart'))
 app.register(require('./services/jwt.js'))
 app.register(require('@fastify/cookie'))
+app.register(require('./rabbitmq/index.js'))
 app.register(discordPlugin)
 app.setErrorHandler((error, request, reply) => {
     if (error.isOperational) {

@@ -1,7 +1,6 @@
-const app = require('../main.js')
 const AppError = require('../utils/appError.js')
 
-function createUser({ username, email, passwordHash }) {
+function createUser({ app, username, email, passwordHash }) {
     const stmt = app.db
         .prepare(
             `
@@ -13,7 +12,7 @@ function createUser({ username, email, passwordHash }) {
     return stmt.lastInsertRowid
 }
 
-function storeAvatarAndBio({ avatar, bio, username }) {
+function storeAvatarAndBio({ app, avatar, bio, username }) {
     const stmt = app.db.prepare(`
         UPDATE users 
         SET avatar = ?, bio = ?
@@ -22,25 +21,25 @@ function storeAvatarAndBio({ avatar, bio, username }) {
     stmt.run(avatar, bio, username)
 }
 
-function getUserByUsername(username) {
+function getUserByUsername(app, username) {
     return app.db
         .prepare(`SELECT * FROM users WHERE username = ?`)
         .get(username)
 }
 
-function updateBio(userId, newBio) {
+function updateBio(app, userId, newBio) {
     return app.db
         .prepare(`UPDATE users SET bio = ? WHERE id = ?`)
         .run(newBio, userId)
 }
 
-function updateUsername(userId, newusername) {
+function updateUsername(app, userId, newusername) {
     return app.db
         .prepare(`UPDATE users SET username = ? WHERE id = ?`)
         .run(newusername, userId)
 }
 
-function getUserByResetToken(token) {
+function getUserByResetToken(app, token) {
     const date = Date.now()
     console.log(typeof date)
     return app.db
@@ -50,11 +49,11 @@ function getUserByResetToken(token) {
         .get(token, date)
 }
 
-function getUserByEmail(email) {
+function getUserByEmail(app, email) {
     return app.db.prepare(`SELECT * FROM users WHERE email = ?`).get(email)
 }
 
-function storeResetToken({ resetPasswordToken, resetPasswordExpire, id }) {
+function storeResetToken({ app, resetPasswordToken, resetPasswordExpire, id }) {
     return app.db
         .prepare(
             `UPDATE users SET resetPasswordToken = ?, resetPasswordExpire = ? WHERE id = ?`
@@ -81,7 +80,7 @@ function deleteUserAccount(userId) {
         .run(userId)
 }
 
-function updatePassword(userId, newPasswordHash) {
+function updatePassword(app, userId, newPasswordHash) {
     return app.db
         .prepare(`UPDATE users SET password = ? WHERE id = ?`)
         .run(newPasswordHash, userId)
@@ -93,7 +92,7 @@ function enable2FA(userId) {
         .run(userId)
 }
 
-function createOtp(userId, code, expiresAt) {
+function createOtp(app, userId, code, expiresAt) {
     return app.db
         .prepare(
             `
@@ -116,7 +115,7 @@ function getLatestOtp(userId) {
         .get(userId)
 }
 
-function verifyOtp(id, code) {
+function verifyOtp(app, id, code) {
     const otp = app.db
         .prepare(
             `

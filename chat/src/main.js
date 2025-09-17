@@ -11,7 +11,9 @@ const options = {
 
 const app = fastify(options)
 
+app.register(require('./database/chat.js'))
 app.register(require('@fastify/websocket'))
+app.register(require('./rabbitmq/'))
 
 app.register(require('@fastify/cors'), {
     origin: '*',

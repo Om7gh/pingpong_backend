@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3')
 const fp = require('fastify-plugin')
 
-const prepareDb = function (app) {
+const prepareDb = async function (app) {
     const db = new Database('./user.sqlite')
     db.exec(`
 

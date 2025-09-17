@@ -1,4 +1,9 @@
-const { updateAvatarProcess } = require('../services/user')
+const {
+    updateAvatarProcess,
+    updatePasswordProcess,
+    updateBioProcess,
+    updateUsernameProcess,
+} = require('../services/user')
 const AppError = require('../utils/appError')
 const catchAsyncError = require('../utils/catchAsyncError')
 
@@ -9,6 +14,7 @@ const updateUserPassword = catchAsyncError(async function (req, rep) {
         throw new AppError('all fields are required', 400)
     if (!username) throw new AppError('username is missing from route', 400)
     updatePasswordProcess({
+        app,
         oldpassword,
         newpassword,
         repeatnewpassword,
@@ -22,18 +28,16 @@ const updateUserPassword = catchAsyncError(async function (req, rep) {
 })
 
 const updateUserAvatar = catchAsyncError(async function (req, rep) {
-    const updateUserAvatar = catchAsyncError(async function (req, rep) {
-        const username = req.params.username
-        if (!username) throw new AppError('Username is required', 400)
+    const username = req.params.username
+    if (!username) throw new AppError('Username is required', 400)
 
-        const file = await req.file({ limits: { fileSize: 5 * 1024 * 1024 } })
-        if (!file) throw new AppError('No file uploaded', 400)
-        await updateAvatarProcess({ file, username })
-        rep.send({
-            status: 'success',
-            message: 'Avatar updated successfully',
-            avatar: avatarUrl,
-        })
+    const file = await req.file({ limits: { fileSize: 5 * 1024 * 1024 } })
+    if (!file) throw new AppError('No file uploaded', 400)
+    await updateAvatarProcess({ app, file, username })
+    rep.send({
+        status: 'success',
+        message: 'Avatar updated successfully',
+        avatar: avatarUrl,
     })
 
     const streamUpload = (file) => {
@@ -55,7 +59,7 @@ const updateUserBio = catchAsyncError(async function (req, rep) {
     const { username } = req.params
     if (!bio) throw new AppError('all field are required', 400)
     if (!username) throw new AppError('username is missing from route', 400)
-    updateBioProcess({ username, bio })
+    updateBioProcess({ app, username, bio })
     return rep.send({
         status: 'success',
         message: 'User bio updated successfully',
@@ -67,7 +71,7 @@ const updateUserUsername = catchAsyncError(async function (req, rep) {
     const { username } = req.params
     if (!newusername) throw new AppError('all field are required', 400)
     if (!username) throw new AppError('username is missing from route', 400)
-    updateUsernameProcess({ username, newusername })
+    updateUsernameProcess({ app, username, newusername })
 })
 
 const active2fa = catchAsyncError(async function (req, rep) {

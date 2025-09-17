@@ -17,8 +17,8 @@ const signup = catchAsyncError(async function (req, rep) {
     const { username, email, password } = req.body
     if (!username || !email || !password)
         throw new AppError('please fill all field', 400)
-    const userId = await createUser({ username, email, password })
-    if (!sendOtp(userId, email))
+    const userId = await createUser({ app, username, email, password })
+    if (!sendOtp(app, userId, email))
         throw new AppError(
             "pingpop can't send you otp code, try the resend code link"
         )
@@ -34,11 +34,12 @@ const login = catchAsyncError(async function (req, rep) {
         throw new AppError('Please fill all fields', 400)
 
     const { access_token, refresh_token } = await checkLoginUser({
+        app,
         username,
         password,
     })
     if (access_token === '' && refresh_token === '') {
-        const user = getUserByUsername(username)
+        const user = getUserByUsername(app, username)
         if (!user) throw new AppError('user not found', 404)
         sendOtp(user.id, user.email)
         return rep.send({
@@ -68,7 +69,7 @@ const completeAuth = catchAsyncError(async function (req, rep) {
     const parts = await req.parts()
     const username = req.params.username
     if (!username) throw new AppError('you missed username from url', 400)
-    await checkCompleteProfile({ parts, username })
+    await checkCompleteProfile({ app, parts, username })
     rep.send({
         status: 'success',
         message: 'User complete profile successfully',
@@ -95,8 +96,8 @@ const activeAccount = catchAsyncError(async function (req, rep) {
     const { code, username } = req.body
     if (!code || !username)
         throw new AppError('missing activation code or username')
-    await checkOtp({ code, username })
-    const user = getUserByUsername(username)
+    await checkOtp({ app, code, username })
+    const user = getUserByUsername(app, username)
     const token = app.jwt.sign(
         { id: user.id, username: user.username },
         process.env.JWT_SECRET,
@@ -117,8 +118,8 @@ const activeAccount = catchAsyncError(async function (req, rep) {
 const check2fa = catchAsyncError(async function (req, rep) {
     const { code, username } = req.body
     if (!code || !username) throw new AppError('missing 2fa code or username')
-    await checkOtp({ code, username })
-    const user = getUserByUsername(username)
+    await checkOtp({ app, code, username })
+    const user = getUserByUsername(app, username)
     const token = app.jwt.sign(
         { id: user.id, username: user.username },
         process.env.JWT_SECRET,
@@ -142,7 +143,7 @@ const check2fa = catchAsyncError(async function (req, rep) {
 const forgetPassword = catchAsyncError(async function (req, rep) {
     const { email } = req.body
     if (!email) throw new AppError('email field is required', 400)
-    await forgetPassowrdProcess({ email })
+    await forgetPassowrdProcess({ app, email })
     rep.send({
         status: 'success',
         message: 'Code send in your mail successfully',
@@ -157,7 +158,7 @@ const resetPassword = catchAsyncError(async function (req, rep) {
     if (password !== repeatPassword)
         throw new AppError("password and confirm password doesn't match", 400)
     if (!token) throw new AppError('missing token in params', 400)
-    await resetPasswordProcess({ password, token })
+    await resetPasswordProcess({ app, password, token })
     rep.send({
         status: 'success',
         message: 'Password has reseted successfully',
